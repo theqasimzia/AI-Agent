@@ -151,6 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const chatbox = document.getElementById("chatbox");
         if (chatbox.innerHTML.trim() === "") {
             console.log("Current chat is empty, not creating new chat");
+            userInput.focus(); // Focus input even if not creating new chat
             return;
         }
         
@@ -184,6 +185,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (isRecording) {
                 stopListening();
             }
+
+            // Focus the input text area
+            userInput.focus();
         } catch (error) {
             console.error("Error creating new chat:", error);
             alert("Failed to create new chat. Please try again.");
