@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const endLiveChat = document.getElementById("endLiveChat");
     const timer = document.querySelector(".timer");
     const themeToggle = document.querySelector('.theme-button');
+    const exploreChatsBtn = document.getElementById("exploreChatsBtn");
+    const exploreArea = document.getElementById("exploreArea");
+    const closeExploreBtn = document.getElementById("closeExploreBtn");
 
     let sessionId = localStorage.getItem("sessionId") || generateSessionId();
     let currentRecognition = null;
@@ -1069,4 +1072,316 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Update new chat button click handler
     document.getElementById('newChatButton').addEventListener('click', startNewChat);
+
+    // Explore Chats functionality
+    const chatContent = document.getElementById("chatContent");
+    
+    exploreChatsBtn.addEventListener("click", function() {
+        chatContent.classList.remove("active");
+        exploreArea.classList.remove("hidden");
+        exploreArea.classList.add("active");
+    });
+
+    closeExploreBtn.addEventListener("click", function() {
+        exploreArea.classList.remove("active");
+        exploreArea.classList.add("hidden");
+        chatContent.classList.add("active");
+    });
+
+    // Close explore area when pressing Escape
+    document.addEventListener("keydown", function(event) {
+        if (event.code === "Escape" && exploreArea.classList.contains("active")) {
+            exploreArea.classList.remove("active");
+            exploreArea.classList.add("hidden");
+            chatContent.classList.add("active");
+        }
+    });
+
+    // User Menu Functionality
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userDropdown = document.getElementById('userDropdown');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Toggle dropdown when clicking the user menu button
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('hidden');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userDropdown.contains(e.target) && !userMenuBtn.contains(e.target)) {
+            userDropdown.classList.add('hidden');
+        }
+    });
+
+    // Handle settings button click
+    settingsBtn.addEventListener('click', () => {
+        const container = document.querySelector('.container');
+        const chatContent = document.getElementById('chatContent');
+        const settingsArea = document.getElementById('settingsArea');
+        const exploreArea = document.getElementById('exploreArea');
+
+        // Add settings-active class to container
+        container.classList.add('settings-active');
+
+        // Hide other content
+        chatContent.classList.add('hidden');
+        exploreArea.classList.add('hidden');
+        
+        // Show settings area
+        settingsArea.classList.remove('hidden');
+        settingsArea.classList.add('active');
+        
+        // Hide user dropdown
+        userDropdown.classList.add('hidden');
+        
+        // Set initial active section
+        const firstNavItem = document.querySelector('.nav-item');
+        if (firstNavItem) {
+            firstNavItem.click();
+        }
+    });
+
+    // Handle logout button click
+    logoutBtn.addEventListener('click', () => {
+        // Add your logout logic here
+        console.log('Logout clicked');
+        userDropdown.classList.add('hidden');
+    });
+
+    // Settings Page Functionality
+    const settingsArea = document.getElementById('settingsArea');
+    const navItems = document.querySelectorAll('.nav-item');
+    const settingsSections = document.querySelectorAll('.settings-section');
+    const apiKeyInput = document.getElementById('apiKey');
+    const toggleVisibilityBtn = document.querySelector('.toggle-visibility');
+    const twoFactorToggle = document.getElementById('twoFactorAuth');
+    const deleteAccountBtn = document.querySelector('.delete-account');
+    const downloadDataBtn = document.querySelector('.download-data');
+    const planButtons = document.querySelectorAll('.plan-button:not(.current)');
+
+    // Handle close button click
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', () => {
+            const container = document.querySelector('.container');
+            const chatContent = document.getElementById('chatContent');
+            const settingsArea = document.getElementById('settingsArea');
+
+            // Remove settings-active class from container
+            container.classList.remove('settings-active');
+
+            // Hide settings
+            settingsArea.classList.remove('active');
+            settingsArea.classList.add('hidden');
+            
+            // Show chat content
+            chatContent.style.display = 'flex';
+            chatContent.classList.remove('hidden');
+        });
+    }
+
+    // Close settings when pressing Escape
+    document.addEventListener('keydown', (e) => {
+        const container = document.querySelector('.container');
+        const chatContent = document.getElementById('chatContent');
+        const settingsArea = document.getElementById('settingsArea');
+
+        if (e.key === 'Escape' && settingsArea.classList.contains('active')) {
+            // Remove settings-active class from container
+            container.classList.remove('settings-active');
+
+            // Hide settings
+            settingsArea.classList.remove('active');
+            settingsArea.classList.add('hidden');
+            
+            // Show chat content
+            chatContent.style.display = 'flex';
+            chatContent.classList.remove('hidden');
+        }
+    });
+
+    // Handle navigation between settings sections
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            // Update active nav item
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+
+            // Show corresponding section
+            const sectionId = item.getAttribute('data-section');
+            settingsSections.forEach(section => {
+                section.classList.remove('active');
+                if (section.id === `${sectionId}-section`) {
+                    section.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // Toggle API key visibility
+    toggleVisibilityBtn.addEventListener('click', () => {
+        const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+        apiKeyInput.type = type;
+        toggleVisibilityBtn.innerHTML = type === 'password' 
+            ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
+            : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+    });
+
+    // Save API Configuration
+    document.querySelector('#api-section .save-button').addEventListener('click', () => {
+        const model = document.getElementById('aiModel').value;
+        const apiKey = apiKeyInput.value;
+        
+        // Save to localStorage (in production, use more secure storage)
+        localStorage.setItem('aiModel', model);
+        localStorage.setItem('apiKey', apiKey);
+        
+        showToast('API configuration saved successfully');
+    });
+
+    // Handle 2FA Toggle
+    twoFactorToggle.addEventListener('change', () => {
+        if (twoFactorToggle.checked) {
+            // Show 2FA setup modal/process
+            showToast('2FA setup process would start here');
+        } else {
+            if (confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
+                showToast('2FA has been disabled');
+            } else {
+                twoFactorToggle.checked = true;
+            }
+        }
+    });
+
+    // Handle Delete Account
+    deleteAccountBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+            if (confirm('Please confirm again that you want to permanently delete your account.')) {
+                // Add account deletion logic here
+                showToast('Account deletion process initiated');
+            }
+        }
+    });
+
+    // Handle Download Data
+    downloadDataBtn.addEventListener('click', () => {
+        // Simulate data download
+        const userData = {
+            profile: {
+                name: document.getElementById('userName').value,
+                email: document.getElementById('userEmail').value
+            },
+            settings: {
+                aiModel: document.getElementById('aiModel').value,
+                theme: isDarkMode ? 'dark' : 'light'
+            },
+            // Add more user data as needed
+        };
+
+        const dataStr = JSON.stringify(userData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'my-chatbot-data.json';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showToast('Your data has been downloaded');
+    });
+
+    // Handle Plan Upgrades
+    planButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const planName = button.closest('.plan-card').querySelector('h5').textContent;
+            if (planName === 'Enterprise') {
+                window.location.href = 'mailto:sales@example.com?subject=Enterprise Plan Inquiry';
+            } else {
+                // Redirect to payment page or show payment modal
+                showToast(`Upgrading to ${planName} plan...`);
+            }
+        });
+    });
+
+    // Save Personal Details
+    document.querySelector('#personal-section .save-button').addEventListener('click', () => {
+        const name = document.getElementById('userName').value;
+        const email = document.getElementById('userEmail').value;
+        
+        // Save to localStorage (in production, use backend API)
+        localStorage.setItem('userName', name);
+        localStorage.setItem('userEmail', email);
+        
+        showToast('Personal details saved successfully');
+    });
+
+    // Toast Notification Function
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        // Trigger reflow for animation
+        toast.offsetHeight;
+        
+        // Show toast
+        toast.classList.add('show');
+        
+        // Remove toast after animation
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 300);
+        }, 3000);
+    }
+
+    // Load saved settings
+    function loadSavedSettings() {
+        // Load personal details
+        const savedName = localStorage.getItem('userName');
+        const savedEmail = localStorage.getItem('userEmail');
+        if (savedName) document.getElementById('userName').value = savedName;
+        if (savedEmail) document.getElementById('userEmail').value = savedEmail;
+        
+        // Load API settings
+        const savedModel = localStorage.getItem('aiModel');
+        const savedApiKey = localStorage.getItem('apiKey');
+        if (savedModel) document.getElementById('aiModel').value = savedModel;
+        if (savedApiKey) document.getElementById('apiKey').value = savedApiKey;
+    }
+
+    // Initialize settings
+    loadSavedSettings();
+
+    // Add toast styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    `;
+    document.head.appendChild(style);
 });

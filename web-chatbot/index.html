@@ -48,6 +48,17 @@
             <div class="sessions-list" id="sessionList">
                 <!-- Sessions will be dynamically added here -->
             </div>
+            
+            <!-- Separator and Explore Chats Button -->
+            <div class="sidebar-footer">
+                <div class="separator"></div>
+                <button class="explore-chats-btn" id="exploreChatsBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                    </svg>
+                    Explore Chats
+                </button>
+            </div>
         </div>
 
         <!-- Chat Area -->
@@ -76,65 +87,292 @@
                         </svg>
                         Go Live
                     </button>
+                    <div class="user-menu">
+                        <button id="userMenuBtn" class="user-menu-btn" title="User Menu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </button>
+                        <div class="user-dropdown hidden" id="userDropdown">
+                            <button class="dropdown-item" id="settingsBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                                Settings
+                            </button>
+                            <button class="dropdown-item" id="logoutBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="chatbox"></div>
-            
-            <!-- Recording Status -->
-            <div id="recordingStatus" class="recording-status hidden">
-                <span class="status-text">🎙️ Speak Now</span>
-                <div class="sound-waves">
-                    <span></span><span></span><span></span><span></span>
-                </div>
-            </div>
-            
-            <div class="input-area">
-                <textarea id="userInput" placeholder="Type your message..." rows="1"></textarea>
-            
-                <button class="mic-btn" id="micButton" onclick="startListening()">
-                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" 
-                        width="32" height="32" viewBox="0 0 256 256" xml:space="preserve">
-                        <g style="stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; 
-                                 stroke-linejoin: miter; stroke-miterlimit: 10; fill: none; fill-rule: nonzero; opacity: 1;" 
-                           transform="translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)">
-                            <path d="M 45 70.968 c -16.013 0 -29.042 -13.028 -29.042 -29.042 c 0 -1.712 1.388 -3.099 3.099 -3.099 
-                                    c 1.712 0 3.099 1.388 3.099 3.099 C 22.157 54.522 32.404 64.77 45 64.77 c 12.595 0 22.843 -10.248 22.843 -22.843 
-                                    c 0 -1.712 1.387 -3.099 3.099 -3.099 s 3.099 1.388 3.099 3.099 C 74.042 57.94 61.013 70.968 45 70.968 z" 
-                                    style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
-                            <path d="M 45 60.738 L 45 60.738 c -10.285 0 -18.7 -8.415 -18.7 -18.7 V 18.7 C 26.3 8.415 34.715 0 45 0 h 0 
-                                    c 10.285 0 18.7 8.415 18.7 18.7 v 23.337 C 63.7 52.322 55.285 60.738 45 60.738 z" 
-                                    style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
-                            <path d="M 45 89.213 c -1.712 0 -3.099 -1.387 -3.099 -3.099 V 68.655 c 0 -1.712 1.388 -3.099 3.099 -3.099 
-                                    c 1.712 0 3.099 1.387 3.099 3.099 v 17.459 C 48.099 87.826 46.712 89.213 45 89.213 z" 
-                                    style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
-                            <path d="M 55.451 90 H 34.549 c -1.712 0 -3.099 -1.387 -3.099 -3.099 s 1.388 -3.099 3.099 -3.099 h 20.901 
-                                    c 1.712 0 3.099 1.387 3.099 3.099 S 57.163 90 55.451 90 z" 
-                                    style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
-                        </g>
-                    </svg>
-                </button>
-                
-                <button class="send-voice-btn" id="sendVoiceButton" onclick="sendVoiceMessage()" aria-label="Send Message">
-                    <img src="images/send-icon.svg" alt="Send Message" class="send-icon">
-                </button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Live Chat Overlay -->
-    <div id="liveChatOverlay" class="live-chat-overlay hidden">
-        <!-- Countdown -->
-        <div id="countdown" class="countdown-container hidden">
-            <div class="countdown-number"></div>
-        </div>
-        
-        <!-- Live Chat UI -->
-        <div id="liveChatUI" class="live-chat-ui hidden">
-            <div class="live-chat-status">
-                <div class="live-status-circle"></div>
-                <div class="live-status-text"></div>
+            <!-- Main Chat Content -->
+            <div class="main-content-area">
+                <!-- Chat Messages -->
+                <div class="chat-content active" id="chatContent">
+                    <div id="chatbox"></div>
+                    
+                    <!-- Recording Status -->
+                    <div id="recordingStatus" class="recording-status hidden">
+                        <span class="status-text">🎙️ Speak Now</span>
+                        <div class="sound-waves">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="input-area">
+                        <textarea id="userInput" placeholder="Type your message..." rows="1"></textarea>
+                        <button class="mic-btn" id="micButton" onclick="startListening()">
+                            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" 
+                                width="32" height="32" viewBox="0 0 256 256" xml:space="preserve">
+                                <g style="stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; 
+                                         stroke-linejoin: miter; stroke-miterlimit: 10; fill: none; fill-rule: nonzero; opacity: 1;" 
+                                   transform="translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)">
+                                    <path d="M 45 70.968 c -16.013 0 -29.042 -13.028 -29.042 -29.042 c 0 -1.712 1.388 -3.099 3.099 -3.099 
+                                            c 1.712 0 3.099 1.388 3.099 3.099 C 22.157 54.522 32.404 64.77 45 64.77 c 12.595 0 22.843 -10.248 22.843 -22.843 
+                                            c 0 -1.712 1.387 -3.099 3.099 -3.099 s 3.099 1.388 3.099 3.099 C 74.042 57.94 61.013 70.968 45 70.968 z" 
+                                            style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
+                                    <path d="M 45 60.738 L 45 60.738 c -10.285 0 -18.7 -8.415 -18.7 -18.7 V 18.7 C 26.3 8.415 34.715 0 45 0 h 0 
+                                            c 10.285 0 18.7 8.415 18.7 18.7 v 23.337 C 63.7 52.322 55.285 60.738 45 60.738 z" 
+                                            style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
+                                    <path d="M 45 89.213 c -1.712 0 -3.099 -1.387 -3.099 -3.099 V 68.655 c 0 -1.712 1.388 -3.099 3.099 -3.099 
+                                            c 1.712 0 3.099 1.387 3.099 3.099 v 17.459 C 48.099 87.826 46.712 89.213 45 89.213 z" 
+                                            style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
+                                    <path d="M 55.451 90 H 34.549 c -1.712 0 -3.099 -1.387 -3.099 -3.099 s 1.388 -3.099 3.099 -3.099 h 20.901 
+                                            c 1.712 0 3.099 1.387 3.099 3.099 S 57.163 90 55.451 90 z" 
+                                            style="fill: rgb(255,255,255);" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round"/>
+                                </g>
+                            </svg>
+                        </button>
+                        <button class="send-voice-btn" id="sendVoiceButton" onclick="sendVoiceMessage()" aria-label="Send Message">
+                            <img src="images/send-icon.svg" alt="Send Message" class="send-icon">
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Explore Area -->
+                <div class="explore-content hidden" id="exploreArea">
+                    <div class="explore-header">
+                        <h2>Explore Chats</h2>
+                        <button class="close-explore-btn" id="closeExploreBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="explore-content-area">
+                        <!-- Content will be added here -->
+                    </div>
+                </div>
+
+                <!-- Settings Area -->
+                <div class="settings-content hidden" id="settingsArea">
+                    <div class="settings-container">
+                        <!-- Settings Navigation -->
+                        <div class="settings-nav">
+                            <h2>Settings</h2>
+                            <nav>
+                                <button class="nav-item active" data-section="personal">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    Personal Details
+                                </button>
+                                <button class="nav-item" data-section="api">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                                    </svg>
+                                    API Configuration
+                                </button>
+                                <button class="nav-item" data-section="subscription">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                                    </svg>
+                                    Plan & Subscription
+                                </button>
+                                <button class="nav-item" data-section="account">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                    Account & Security
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Settings Content -->
+                        <div class="settings-content-area">
+                            <!-- Personal Details Section -->
+                            <div class="settings-section active" id="personal-section">
+                                <h3>Personal Details</h3>
+                                <div class="settings-card">
+                                    <div class="profile-picture">
+                                        <div class="picture-placeholder">
+                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="12" cy="7" r="4"></circle>
+                                            </svg>
+                                        </div>
+                                        <button class="upload-picture">Change Picture</button>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="userName">Name</label>
+                                        <input type="text" id="userName" placeholder="Your Name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="userEmail">Email</label>
+                                        <input type="email" id="userEmail" placeholder="your.email@example.com">
+                                    </div>
+                                    <button class="save-button">Save Changes</button>
+                                </div>
+                            </div>
+
+                            <!-- API Configuration Section -->
+                            <div class="settings-section" id="api-section">
+                                <h3>API Configuration</h3>
+                                <div class="settings-card">
+                                    <div class="form-group">
+                                        <label for="aiModel">AI Model</label>
+                                        <select id="aiModel">
+                                            <option value="gpt4">GPT-4</option>
+                                            <option value="claude">Claude</option>
+                                            <option value="gemini">Gemini</option>
+                                            <option value="llama">LLaMA</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="apiKey">API Key</label>
+                                        <div class="api-key-input">
+                                            <input type="password" id="apiKey" placeholder="Enter your API key">
+                                            <button class="toggle-visibility" title="Toggle visibility">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <p class="info-text">Use your own API key for enhanced control and billing management.</p>
+                                    </div>
+                                    <button class="save-button">Save API Configuration</button>
+                                </div>
+                            </div>
+
+                            <!-- Plan & Subscription Section -->
+                            <div class="settings-section" id="subscription-section">
+                                <h3>Plan & Subscription</h3>
+                                <div class="settings-card">
+                                    <div class="current-plan">
+                                        <h4>Current Plan</h4>
+                                        <div class="plan-badge">Free</div>
+                                    </div>
+                                    <div class="plans-list">
+                                        <div class="plan-card">
+                                            <div class="plan-header">
+                                                <h5>Free</h5>
+                                                <span class="price">$0/mo</span>
+                                            </div>
+                                            <ul class="plan-features">
+                                                <li>Basic chat functionality</li>
+                                                <li>Limited messages per day</li>
+                                                <li>Standard response time</li>
+                                            </ul>
+                                            <button class="plan-button current">Current Plan</button>
+                                        </div>
+                                        <div class="plan-card">
+                                            <div class="plan-header">
+                                                <h5>Pro</h5>
+                                                <span class="price">$10/mo</span>
+                                            </div>
+                                            <ul class="plan-features">
+                                                <li>Unlimited messages</li>
+                                                <li>Priority response time</li>
+                                                <li>Advanced AI models</li>
+                                            </ul>
+                                            <button class="plan-button">Upgrade</button>
+                                        </div>
+                                        <div class="plan-card">
+                                            <div class="plan-header">
+                                                <h5>Enterprise</h5>
+                                                <span class="price">Custom</span>
+                                            </div>
+                                            <ul class="plan-features">
+                                                <li>Custom AI models</li>
+                                                <li>Dedicated support</li>
+                                                <li>API access</li>
+                                            </ul>
+                                            <button class="plan-button">Contact Sales</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account & Security Section -->
+                            <div class="settings-section" id="account-section">
+                                <h3>Account & Security</h3>
+                                <div class="settings-card">
+                                    <div class="form-group">
+                                        <label for="newPassword">Change Password</label>
+                                        <input type="password" id="newPassword" placeholder="New password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="confirmPassword">Confirm Password</label>
+                                        <input type="password" id="confirmPassword" placeholder="Confirm new password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="toggle-label">
+                                            Two-Factor Authentication
+                                            <div class="toggle-switch">
+                                                <input type="checkbox" id="twoFactorAuth">
+                                                <span class="toggle-slider"></span>
+                                            </div>
+                                        </label>
+                                        <p class="info-text">Enable 2FA for enhanced account security</p>
+                                    </div>
+                                    <div class="danger-zone">
+                                        <h4>Danger Zone</h4>
+                                        <button class="download-data">Download My Data</button>
+                                        <button class="delete-account">Delete Account</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Close Button -->
+                        <button class="close-settings-btn" id="closeSettingsBtn" title="Close Settings">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <button id="endLiveChat" class="end-live-chat">End Live Chat</button>
+        </div>
+
+        <!-- Live Chat Overlay -->
+        <div id="liveChatOverlay" class="live-chat-overlay hidden">
+            <!-- Countdown -->
+            <div id="countdown" class="countdown-container hidden">
+                <div class="countdown-number"></div>
+            </div>
+            
+            <!-- Live Chat UI -->
+            <div id="liveChatUI" class="live-chat-ui hidden">
+                <div class="live-chat-status">
+                    <div class="live-status-circle"></div>
+                    <div class="live-status-text"></div>
+                </div>
+                <button id="endLiveChat" class="end-live-chat">End Live Chat</button>
+            </div>
         </div>
     </div>
 
