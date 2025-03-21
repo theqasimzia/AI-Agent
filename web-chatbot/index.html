@@ -46,12 +46,19 @@
                         </svg>
                     </button>
                 </div>
+                <button id="goLiveButton" class="go-live-button" title="Start Live Chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="12" r="4" fill="currentColor" />
+                    </svg>
+                    Go Live
+                </button>
             </div>
             <div id="chatbox"></div>
             
             <!-- Recording Status -->
             <div id="recordingStatus" class="recording-status hidden">
-                <span class="status-text">🎙️ Speak Now</span>
+                <span class="status-text">🎙️ Speak you Now</span>
                 <div class="sound-waves">
                     <span></span><span></span><span></span><span></span>
                 </div>
@@ -87,6 +94,23 @@
                     <img src="images/send-icon.svg" alt="Send Message" class="send-icon">
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Live Chat Overlay -->
+    <div id="liveChatOverlay" class="live-chat-overlay hidden">
+        <!-- Countdown -->
+        <div id="countdown" class="countdown-container hidden">
+            <div class="countdown-number"></div>
+        </div>
+        
+        <!-- Live Chat UI -->
+        <div id="liveChatUI" class="live-chat-ui hidden">
+            <div class="live-chat-status">
+                <div class="live-status-circle"></div>
+                <div class="live-status-text"></div>
+            </div>
+            <button id="endLiveChat" class="end-live-chat">End Live Chat</button>
         </div>
     </div>
 

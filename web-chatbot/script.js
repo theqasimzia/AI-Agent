@@ -5,11 +5,25 @@ document.addEventListener("DOMContentLoaded", function () {
     const micButton = document.getElementById("micButton");
     const recordingIndicator = document.getElementById("recordingIndicator");
     const ttsToggle = document.getElementById("ttsToggle");
+    const goLiveButton = document.getElementById("goLiveButton");
+    const liveChatOverlay = document.getElementById("liveChatOverlay");
+    const countdown = document.getElementById("countdown");
+    const liveChatUI = document.getElementById("liveChatUI");
+    const endLiveChat = document.getElementById("endLiveChat");
+    const timer = document.querySelector(".timer");
 
     let sessionId = localStorage.getItem("sessionId") || generateSessionId();
     let currentRecognition = null;
     let isRecording = false;
     let isTtsEnabled = localStorage.getItem("ttsEnabled") === "true" || false;
+    let isLiveMode = false;
+    let liveRecognition = null;
+    let timerInterval = null;
+    let timeLeft = 10;
+    let isAgentSpeaking = false;
+    let isListening = false;
+    let lastVoiceDetectedTime = 0;
+    let voiceCheckInterval = null;
 
     // Auto-resize textarea as user types
     function autoResizeTextarea() {
@@ -39,6 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (event.code === "Escape" && isRecording) {
             event.preventDefault();
             stopListening();
+        }
+        if (event.code === "Escape" && isLiveMode) {
+            endLiveMode(true);
         }
     });
 
@@ -118,6 +135,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // Function to start a new chat
     async function startNewChat() {
         console.log("Starting new chat...");
+        
+        // Check if current chat is empty
+        const chatbox = document.getElementById("chatbox");
+        if (chatbox.innerHTML.trim() === "") {
+            console.log("Current chat is empty, not creating new chat");
+            return;
+        }
+        
         try {
             // Create new session on the server
             const response = await fetch("http://localhost:5000/sessions/new", {
@@ -130,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Update session ID
             sessionId = data.sessionId;
-            localStorage.setItem("sessionId", sessionId);
+        localStorage.setItem("sessionId", sessionId);
             
             // Clear chat
             chatbox.innerHTML = "";
@@ -183,63 +208,28 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Function to load all sessions
-    async function loadSessions() {
-        console.log("Loading sessions...");
+    // Function to delete a chat session
+    async function deleteSession(sessionToDelete) {
         try {
-            const response = await fetch("http://localhost:5000/sessions");
-            console.log("Sessions response:", response);
-            const data = await response.json();
-            console.log("Sessions data:", data);
-            
-            // Clear existing sessions
-            sessionList.innerHTML = "";
-            
-            // Sort sessions by timestamp (newest first)
-            const sortedSessions = data.sessions.sort((a, b) => {
-                const timestampA = parseInt(a.split('-')[1]);
-                const timestampB = parseInt(b.split('-')[1]);
-                return timestampB - timestampA;
+            const response = await fetch(`http://localhost:5000/sessions/${sessionToDelete}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" }
             });
             
-            // Add sessions to the list
-            sortedSessions.forEach(id => {
-                let sessionBtn = document.createElement("button");
-                const timestamp = id.split('-')[1];
-                
-                // Create title and timestamp elements
-                const titleSpan = document.createElement("span");
-                titleSpan.className = "chat-title";
-                titleSpan.textContent = `Chat ${formatTimestamp(timestamp)}`;
-                
-                const timeSpan = document.createElement("span");
-                timeSpan.className = "chat-time";
-                timeSpan.textContent = formatTimestamp(timestamp, true);
-                
-                sessionBtn.appendChild(titleSpan);
-                sessionBtn.appendChild(timeSpan);
-                
-                // Add active class if this is the current session
-                if (id === sessionId) {
-                    sessionBtn.classList.add('active');
+            if (response.ok) {
+                // If the deleted session was the current one, clear the chat
+                if (sessionToDelete === sessionId) {
+                    chatbox.innerHTML = "";
+                    userInput.value = "";
+                    document.getElementById("sendVoiceButton").classList.add("hidden");
                 }
-                
-                sessionBtn.onclick = () => {
-                    // Remove active class from all buttons
-                    document.querySelectorAll('.sessions-list button').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    // Add active class to clicked button
-                    sessionBtn.classList.add('active');
-                    sessionId = id;
-                    localStorage.setItem("sessionId", id);
-                    loadChat(id);
-                };
-                sessionList.appendChild(sessionBtn);
-            });
+                // Refresh the sessions list
+                loadSessions();
+            } else {
+                console.error("Failed to delete session");
+            }
         } catch (error) {
-            console.error("Error loading sessions:", error);
-            alert("Failed to load chat sessions. Please refresh the page.");
+            console.error("Error deleting session:", error);
         }
     }
 
@@ -260,27 +250,179 @@ document.addEventListener("DOMContentLoaded", function () {
             hour12: true 
         });
 
-        // If includeTime is false, just return the time
-        if (!includeTime) {
-            return timeStr;
-        }
+        // Format date
+        const dateStr = date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+        });
 
-        // For the detailed timestamp
-        if (days > 7) {
-            return date.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit'
+        // Return full timestamp
+        return `${dateStr} ${timeStr}`;
+    }
+
+    // Function to load all sessions
+    async function loadSessions() {
+        console.log("Loading sessions...");
+        try {
+            const response = await fetch("http://localhost:5000/sessions");
+            console.log("Sessions response:", response);
+            const data = await response.json();
+            console.log("Sessions data:", data);
+            
+            // Clear existing sessions
+            sessionList.innerHTML = "";
+            
+            // Sort sessions by last chat time (newest first)
+            const sortedSessions = data.sessions.sort((a, b) => b.lastChatTime - a.lastChatTime);
+
+            // Create session buttons
+            sortedSessions.forEach(session => {
+                const sessionButton = document.createElement("div");
+                sessionButton.className = "session-item";
+                if (session.id === sessionId) {
+                    sessionButton.classList.add("active");
+                }
+                
+                // Create session info div
+                const sessionInfo = document.createElement("div");
+                sessionInfo.className = "session-info";
+                
+                // Add title with edit functionality
+                const titleDiv = document.createElement("div");
+                titleDiv.className = "session-title";
+                
+                const titleText = document.createElement("div");
+                titleText.className = "session-title-text";
+                titleText.textContent = session.title;
+                
+                // Add timestamp
+                const timestampDiv = document.createElement("div");
+                timestampDiv.className = "session-timestamp";
+                timestampDiv.textContent = formatTimestamp(session.lastChatTime);
+                
+                // Create actions div
+                const actionsDiv = document.createElement("div");
+                actionsDiv.className = "session-actions";
+                
+                // Create edit button
+                const editButton = document.createElement("button");
+                editButton.className = "edit-session";
+                editButton.innerHTML = "✎";
+                editButton.onclick = (e) => {
+                    e.stopPropagation();
+                    
+                    // Create input element
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "session-title-input";
+                    input.value = session.title;
+                    
+                    // Replace title text with input
+                    titleText.textContent = "";
+                    titleText.classList.add("editing");
+                    titleText.appendChild(input);
+                    input.focus();
+                    
+                    // Handle input events
+                    input.onblur = async () => {
+                        const newTitle = input.value.trim();
+                        if (newTitle && newTitle !== session.title) {
+                            try {
+                                const response = await fetch(`http://localhost:5000/sessions/${session.id}/title`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ title: newTitle })
+                                });
+                                
+                                if (response.ok) {
+                                    titleText.textContent = newTitle;
+                                    titleText.classList.remove("editing");
+                                } else {
+                                    titleText.textContent = session.title;
+                                    titleText.classList.remove("editing");
+                                    console.error("Failed to update chat title");
+                                }
+                            } catch (error) {
+                                titleText.textContent = session.title;
+                                titleText.classList.remove("editing");
+                                console.error("Error updating chat title:", error);
+                            }
+                        } else {
+                            titleText.textContent = session.title;
+                            titleText.classList.remove("editing");
+                        }
+                    };
+                    
+                    input.onkeydown = (e) => {
+                        if (e.key === "Enter") {
+                            input.blur();
+                        } else if (e.key === "Escape") {
+                            titleText.textContent = session.title;
+                            titleText.classList.remove("editing");
+                        }
+                    };
+                };
+                
+                // Create delete button
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "delete-session";
+                deleteButton.innerHTML = "×";
+                deleteButton.onclick = async (e) => {
+                    e.stopPropagation();
+                    if (confirm("Are you sure you want to delete this chat session?")) {
+                        try {
+                            const response = await fetch(`http://localhost:5000/sessions/${session.id}`, {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" }
+                            });
+                            
+                            if (response.ok) {
+                                if (session.id === sessionId) {
+                                    chatbox.innerHTML = "";
+                                    userInput.value = "";
+                                    document.getElementById("sendVoiceButton").classList.add("hidden");
+                                    sessionId = generateSessionId();
+                                }
+                                loadSessions();
+                            } else {
+                                console.error("Failed to delete session");
+                                alert("Failed to delete session. Please try again.");
+                            }
+                        } catch (error) {
+                            console.error("Error deleting session:", error);
+                            alert("Error deleting session. Please try again.");
+                        }
+                    }
+                };
+                
+                // Add buttons to actions div
+                actionsDiv.appendChild(editButton);
+                actionsDiv.appendChild(deleteButton);
+                
+                // Add elements to title div
+                titleDiv.appendChild(titleText);
+                
+                // Add elements to session info
+                sessionInfo.appendChild(titleDiv);
+                sessionInfo.appendChild(timestampDiv);
+                
+                // Add click handler for session selection
+                sessionInfo.onclick = () => {
+                    document.querySelectorAll('.session-item').forEach(item => item.classList.remove('active'));
+                    sessionButton.classList.add('active');
+                    sessionId = session.id;
+                    localStorage.setItem("sessionId", session.id);
+                    loadChat(session.id);
+                };
+                
+                // Add elements to session button
+                sessionButton.appendChild(sessionInfo);
+                sessionButton.appendChild(actionsDiv);
+                sessionList.appendChild(sessionButton);
             });
-        } else if (days > 0) {
-            return `${days}d ago`;
-        } else if (hours > 0) {
-            return `${hours}h ago`;
-        } else if (minutes > 0) {
-            return `${minutes}m ago`;
-        } else {
-            return 'Just now';
+        } catch (error) {
+            console.error("Error loading sessions:", error);
+            sessionList.innerHTML = '<div class="error">Failed to load sessions</div>';
         }
     }
 
@@ -297,7 +439,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const statusText = recordingStatus.querySelector(".status-text");
         const userInput = document.getElementById("userInput");
         const sendVoiceButton = document.getElementById("sendVoiceButton");
-
+    
         // If already recording, stop first
         if (isRecording) {
             stopListening();
@@ -338,10 +480,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 };
 
                 if (speaking) {
-                    statusText.textContent = "🎙️ Listening...";
+                    elements.statusText.textContent = "🎙️ Listening...";
                     Object.values(elements).forEach(el => el?.classList.add("listening"));
                 } else {
-                    statusText.textContent = "🎙️ Speak Now";
+                    elements.statusText.textContent = "🎙️ Speak Now";
                     Object.values(elements).forEach(el => el?.classList.remove("listening"));
                 }
                 userInput.focus();
@@ -361,7 +503,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             recognition.onstart = function() {
                 isRecording = true;
-                micButton.classList.add("recording");
+        micButton.classList.add("recording");
                 userInput.classList.add("recording");
                 recordingStatus.classList.remove("hidden");
                 updateUIForSpeaking(false);
@@ -423,7 +565,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Update UI
                 autoResizeTextarea();
                 if (userInput.value.trim()) {
-                    sendVoiceButton.classList.remove("hidden");
+            sendVoiceButton.classList.remove("hidden");
                 } else {
                     sendVoiceButton.classList.add("hidden");
                 }
@@ -442,9 +584,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (soundCheckInterval) {
                     clearInterval(soundCheckInterval);
                 }
-                stopListening();
-            };
-
+            stopListening();
+        };
+    
             recognition.onend = function() {
                 if (soundCheckInterval) {
                     clearInterval(soundCheckInterval);
@@ -457,25 +599,25 @@ document.addEventListener("DOMContentLoaded", function () {
                             recognition.start();
                         } catch (error) {
                             console.error("Error restarting recognition:", error);
-                            stopListening();
+            stopListening();
                         }
                     }, 100);
                 }
-            };
-
+        };
+    
             recognition.start();
         } catch (error) {
             console.error("Error starting speech recognition:", error);
             stopListening();
         }
     }
-
+    
     // Function to stop listening
-    function stopListening() {
+        function stopListening() {
         if (!isRecording) return;
         
         isRecording = false;
-        micButton.classList.remove("recording");
+            micButton.classList.remove("recording");
         userInput.classList.remove("recording");
         document.getElementById("recordingStatus").classList.add("hidden");
         
@@ -492,7 +634,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Make functions available globally
     window.startListening = startListening;
     window.stopListening = stopListening;
-
+    
     // Send voice message function
     async function sendVoiceMessage() {
         let userMessage = userInput.value.trim();
@@ -560,6 +702,239 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             ttsToggle.classList.remove("active");
             ttsToggle.title = "Text-to-Speech: Off";
+        }
+    }
+
+    // Go Live button click handler
+    goLiveButton.addEventListener("click", startLiveMode);
+    endLiveChat.addEventListener("click", () => endLiveMode(true));
+
+    async function startLiveMode() {
+        isLiveMode = true;
+        liveChatOverlay.classList.remove("hidden");
+        
+        // Start countdown
+        countdown.classList.remove("hidden");
+        liveChatUI.classList.add("hidden");
+        
+        // Simple countdown
+        const countdownNumber = countdown.querySelector(".countdown-number");
+        for (let i = 3; i > 0; i--) {
+            countdownNumber.textContent = i;
+            await new Promise(resolve => setTimeout(resolve, 800));
+        }
+        
+        countdown.classList.add("hidden");
+        liveChatUI.classList.remove("hidden");
+        
+        // Initialize speech recognition
+        initializeSpeechRecognition();
+        updateLiveChatStatus("speak");
+    }
+
+    function initializeSpeechRecognition() {
+        try {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            liveRecognition = recognition;
+            
+            recognition.lang = "en-US";
+            recognition.continuous = false;
+            recognition.interimResults = true;
+
+            recognition.onstart = function() {
+                console.log("Recognition started");
+                isListening = false;
+                isAgentSpeaking = false;
+                updateLiveChatStatus("speak");
+            };
+
+            recognition.onaudiostart = function() {
+                console.log("Audio started");
+            };
+
+            recognition.onsoundstart = function() {
+                console.log("Sound detected");
+                if (!isAgentSpeaking) {
+                    isListening = true;
+                    lastVoiceDetectedTime = Date.now();
+                    updateLiveChatStatus("listening");
+                }
+            };
+
+            recognition.onsoundend = function() {
+                console.log("Sound ended");
+                if (!isAgentSpeaking) {
+                    isListening = false;
+                    updateLiveChatStatus("speak");
+                }
+            };
+
+            recognition.onresult = async function(event) {
+                if (isAgentSpeaking) {
+                    console.log("Ignoring result while agent is speaking");
+                    return;
+                }
+
+                const result = event.results[event.results.length - 1];
+                lastVoiceDetectedTime = Date.now();
+
+                if (!result.isFinal) {
+                    isListening = true;
+                    updateLiveChatStatus("listening");
+                    return;
+                }
+
+                const transcript = result[0].transcript.trim();
+                if (transcript) {
+                    console.log("Final transcript:", transcript);
+                    recognition.stop();
+                    isListening = false;
+                    
+                    try {
+                        console.log("Sending to server...");
+                        const response = await fetch("http://localhost:5000/live-chat", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ message: transcript })
+                        });
+
+                        const data = await response.json();
+                        
+                        // Update to agent speaking state
+                        isAgentSpeaking = true;
+                        isListening = false;
+                        updateLiveChatStatus("agent");
+                        
+                        const speech = new SpeechSynthesisUtterance(data.reply);
+                        
+                        speech.onstart = function() {
+                            console.log("Agent started speaking");
+                            isAgentSpeaking = true;
+                            isListening = false;
+                            updateLiveChatStatus("agent");
+                            if (liveRecognition) {
+                                liveRecognition.stop();
+                            }
+                        };
+
+                        speech.onend = function() {
+                            console.log("Agent finished speaking");
+                            isAgentSpeaking = false;
+                            isListening = false;
+                            if (isLiveMode) {
+                                updateLiveChatStatus("speak");
+                                try {
+                                    recognition.start();
+                                } catch (error) {
+                                    console.error("Error restarting recognition:", error);
+                                }
+                            }
+                        };
+
+                        window.speechSynthesis.speak(speech);
+                        
+                    } catch (error) {
+                        console.error("Error in live chat:", error);
+                        endLiveMode(true);
+                    }
+                }
+            };
+
+            recognition.onend = function() {
+                console.log("Recognition ended");
+                if (!isAgentSpeaking && !isListening) {
+                    updateLiveChatStatus("speak");
+                }
+                
+                if (isLiveMode && !isAgentSpeaking) {
+                    console.log("Restarting recognition");
+                    try {
+                        recognition.start();
+                    } catch (error) {
+                        console.error("Error restarting recognition:", error);
+                    }
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Recognition error:", event.error);
+                if (event.error !== 'no-speech') {
+                    endLiveMode(true);
+                }
+            };
+
+            recognition.start();
+            
+        } catch (error) {
+            console.error("Error initializing speech recognition:", error);
+            endLiveMode(true);
+        }
+    }
+
+    function updateLiveChatStatus(status) {
+        console.log("Updating live status to:", status);
+        const statusCircle = document.querySelector(".live-status-circle");
+        const statusText = document.querySelector(".live-status-text");
+        
+        if (!statusCircle || !statusText) {
+            console.error("Live status elements not found");
+            return;
+        }
+
+        // First, remove all status classes
+        statusCircle.classList.remove("listening", "agent-speaking");
+        statusText.classList.remove("speak", "listening", "agent");
+        
+        // Update both the class and text together based on status
+        switch(status) {
+            case "speak":
+                statusCircle.style.borderColor = "#ff4b4b";
+                statusText.textContent = "Speak Now";
+                statusText.classList.add("speak");
+                break;
+            case "listening":
+                statusCircle.classList.add("listening");
+                statusText.textContent = "Listening...";
+                statusText.classList.add("listening");
+                break;
+            case "agent":
+                statusCircle.classList.add("agent-speaking");
+                statusText.textContent = "Agent Speaking";
+                statusText.classList.add("agent");
+                break;
+        }
+    }
+
+    function endLiveMode(withAnimation = true) {
+        console.log("Ending live mode");
+        if (!isLiveMode) return;
+        
+        isLiveMode = false;
+        isAgentSpeaking = false;
+        isListening = false;
+        
+        if (voiceCheckInterval) {
+            clearInterval(voiceCheckInterval);
+            voiceCheckInterval = null;
+        }
+        
+        window.speechSynthesis.cancel();
+        
+        if (liveRecognition) {
+            liveRecognition.stop();
+            liveRecognition = null;
+        }
+        
+        if (withAnimation) {
+            liveChatOverlay.classList.add("exiting");
+            setTimeout(() => {
+                liveChatOverlay.classList.remove("exiting");
+                liveChatOverlay.classList.add("hidden");
+                liveChatUI.classList.add("hidden");
+            }, 300);
+        } else {
+            liveChatOverlay.classList.add("hidden");
+            liveChatUI.classList.add("hidden");
         }
     }
 });
