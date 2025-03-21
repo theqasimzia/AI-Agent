@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const liveChatUI = document.getElementById("liveChatUI");
     const endLiveChat = document.getElementById("endLiveChat");
     const timer = document.querySelector(".timer");
+    const themeToggle = document.querySelector('.theme-button');
 
     let sessionId = localStorage.getItem("sessionId") || generateSessionId();
     let currentRecognition = null;
@@ -24,6 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let isListening = false;
     let lastVoiceDetectedTime = 0;
     let voiceCheckInterval = null;
+    let isDarkMode = localStorage.getItem('theme') === 'dark';
 
     // Auto-resize textarea as user types
     function autoResizeTextarea() {
@@ -101,20 +103,29 @@ document.addEventListener("DOMContentLoaded", function () {
         let userMessage = userInput.value.trim();
         if (!userMessage) return;
 
-        // Display user message in chatbox
-        chatbox.innerHTML += `<p class="user-message"><strong>You:</strong> ${userMessage}</p>`;
-        userInput.value = "";
-        
-        // Hide send button since input is now empty
-        document.getElementById("sendVoiceButton").classList.add("hidden");
-
         try {
-            // Send user message with session ID to backend
+            // Update last chat time on the server
+            await fetch(`http://localhost:5000/sessions/${sessionId}/update-time`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" }
+            });
+
+            // Send the message to the server
             const response = await fetch("http://localhost:5000/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId, message: userMessage })
+                body: JSON.stringify({ message: userMessage, sessionId })
             });
+
+            // Refresh the sessions list to update order
+            loadSessions();
+
+            // Display user message in chatbox
+            chatbox.innerHTML += `<p class="user-message"><strong>You:</strong> ${userMessage}</p>`;
+            userInput.value = "";
+            
+            // Hide send button since input is now empty
+            document.getElementById("sendVoiceButton").classList.add("hidden");
 
             const data = await response.json();
             const aiMessage = data.reply;
@@ -127,8 +138,8 @@ document.addEventListener("DOMContentLoaded", function () {
             speakText(aiMessage);
 
         } catch (error) {
+            console.error("Error sending message:", error);
             chatbox.innerHTML += `<p class="ai-message"><strong>AI:</strong> ❌ Error connecting to server.</p>`;
-            console.error("Error:", error);
         }
     }
 
@@ -273,7 +284,13 @@ document.addEventListener("DOMContentLoaded", function () {
             sessionList.innerHTML = "";
             
             // Sort sessions by last chat time (newest first)
-            const sortedSessions = data.sessions.sort((a, b) => b.lastChatTime - a.lastChatTime);
+            const sortedSessions = data.sessions.sort((a, b) => {
+                // If this is the active session, keep it at the top
+                if (a.id === sessionId) return -1;
+                if (b.id === sessionId) return 1;
+                // Otherwise sort by last chat time
+                return b.lastChatTime - a.lastChatTime;
+            });
 
             // Create session buttons
             sortedSessions.forEach(session => {
@@ -294,6 +311,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const titleText = document.createElement("div");
                 titleText.className = "session-title-text";
                 titleText.textContent = session.title;
+                titleText.setAttribute('data-original-title', session.title); // Store the current title
                 
                 // Add timestamp
                 const timestampDiv = document.createElement("div");
@@ -315,7 +333,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const input = document.createElement("input");
                     input.type = "text";
                     input.className = "session-title-input";
-                    input.value = session.title;
+                    input.value = titleText.textContent; // Use current displayed text
                     
                     // Replace title text with input
                     titleText.textContent = "";
@@ -326,7 +344,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Handle input events
                     input.onblur = async () => {
                         const newTitle = input.value.trim();
-                        if (newTitle && newTitle !== session.title) {
+                        if (newTitle && newTitle !== titleText.getAttribute('data-original-title')) {
                             try {
                                 const response = await fetch(`http://localhost:5000/sessions/${session.id}/title`, {
                                     method: "PUT",
@@ -336,19 +354,20 @@ document.addEventListener("DOMContentLoaded", function () {
                                 
                                 if (response.ok) {
                                     titleText.textContent = newTitle;
+                                    titleText.setAttribute('data-original-title', newTitle); // Update stored title
                                     titleText.classList.remove("editing");
                                 } else {
-                                    titleText.textContent = session.title;
+                                    titleText.textContent = titleText.getAttribute('data-original-title');
                                     titleText.classList.remove("editing");
                                     console.error("Failed to update chat title");
                                 }
                             } catch (error) {
-                                titleText.textContent = session.title;
+                                titleText.textContent = titleText.getAttribute('data-original-title');
                                 titleText.classList.remove("editing");
                                 console.error("Error updating chat title:", error);
                             }
                         } else {
-                            titleText.textContent = session.title;
+                            titleText.textContent = titleText.getAttribute('data-original-title');
                             titleText.classList.remove("editing");
                         }
                     };
@@ -357,7 +376,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (e.key === "Enter") {
                             input.blur();
                         } else if (e.key === "Escape") {
-                            titleText.textContent = session.title;
+                            titleText.textContent = titleText.getAttribute('data-original-title');
                             titleText.classList.remove("editing");
                         }
                     };
@@ -937,4 +956,113 @@ document.addEventListener("DOMContentLoaded", function () {
             liveChatUI.classList.add("hidden");
         }
     }
+
+    // Initialize theme state
+    updateThemeState();
+
+    // Theme toggle click handler
+    themeToggle.addEventListener("click", () => {
+        isDarkMode = !isDarkMode;
+        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        updateThemeState();
+    });
+
+    function updateThemeState() {
+        document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+        themeToggle.title = `Switch to ${isDarkMode ? 'light' : 'dark'} mode`;
+        
+        // Update theme icon
+        themeToggle.innerHTML = isDarkMode 
+            ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>'
+            : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>';
+    }
+
+    // Search functionality
+    const searchButton = document.getElementById('searchButton');
+    const searchContainer = document.getElementById('searchContainer');
+    const searchInput = document.getElementById('searchInput');
+    const searchInfo = document.querySelector('.search-info');
+    let isSearchActive = false;
+
+    searchButton.addEventListener('click', () => {
+        isSearchActive = !isSearchActive;
+        searchContainer.classList.toggle('active', isSearchActive);
+        searchInfo.classList.toggle('visible', isSearchActive);
+        if (isSearchActive) {
+            searchInput.focus();
+        } else {
+            searchInput.value = '';
+            performSearch(''); // Clear search
+        }
+    });
+
+    function highlightText(text, searchTerm) {
+        if (!searchTerm) return text;
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    function performSearch(searchTerm) {
+        const sessionItems = document.querySelectorAll('.session-item');
+        let matchCount = 0;
+        
+        sessionItems.forEach(item => {
+            const titleElement = item.querySelector('.session-title-text');
+            const currentTitle = titleElement.textContent;
+            
+            if (!searchTerm) {
+                // Reset to original state
+                item.classList.remove('search-match', 'search-hidden');
+                item.style.order = '';
+                item.style.display = ''; // Show all items
+            } else {
+                const titleMatch = currentTitle.toLowerCase().includes(searchTerm.toLowerCase());
+                
+                if (titleMatch) {
+                    matchCount++;
+                    titleElement.innerHTML = highlightText(currentTitle, searchTerm);
+                    item.classList.add('search-match');
+                    item.classList.remove('search-hidden');
+                    item.style.order = '-1'; // Move matching items to top
+                    item.style.display = 'flex'; // Show matching items
+                } else {
+                    titleElement.textContent = currentTitle;
+                    item.classList.remove('search-match');
+                    item.classList.add('search-hidden');
+                    item.style.order = '1'; // Move non-matching items to bottom
+                    item.style.display = 'none'; // Hide non-matching items
+                }
+            }
+        });
+
+        // Update results count
+        const resultsCountElement = document.querySelector('.results-count');
+        if (searchTerm) {
+            resultsCountElement.textContent = `${matchCount} result${matchCount !== 1 ? 's' : ''}`;
+        } else {
+            resultsCountElement.textContent = '0 results';
+        }
+    }
+
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            performSearch(e.target.value.trim());
+        }, 200); // Debounce search for better performance
+    });
+
+    // Clear search when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchContainer.contains(e.target) && !searchButton.contains(e.target)) {
+            isSearchActive = false;
+            searchContainer.classList.remove('active');
+            searchInfo.classList.remove('visible');
+            searchInput.value = '';
+            performSearch('');
+        }
+    });
+
+    // Update new chat button click handler
+    document.getElementById('newChatButton').addEventListener('click', startNewChat);
 });

@@ -112,6 +112,29 @@ app.put("/sessions/:sessionId/title", (req, res) => {
     }
 });
 
+// Endpoint to update session last chat time
+app.put("/sessions/:sessionId/update-time", (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        
+        if (!sessionId || !chatSessions[sessionId]) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+
+        // Update the last chat time
+        chatSessions[sessionId].lastChatTime = Date.now();
+        
+        res.json({ 
+            success: true,
+            sessionId,
+            lastChatTime: chatSessions[sessionId].lastChatTime
+        });
+    } catch (error) {
+        console.error("Error updating session time:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
 // Live chat endpoint
 app.post("/live-chat", async (req, res) => {
     try {
